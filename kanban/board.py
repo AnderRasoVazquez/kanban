@@ -156,26 +156,20 @@ class MarkdownParser(object):
             list_title = line[len(HEADING):]
             self._current_card_list = CardList(list_title)
             self.kanban.append(self._current_card_list)
-            print("HEADER: ", line)
         elif line.startswith(ITEM_NAME):
             card_title = line[len(ITEM_NAME):]
             self._current_card = Card(card_title)
             self._current_card_list.append(self._current_card)
-            print("ITEM: ", line)
         elif line.startswith(ITEM_DESCRIPTION):
             card_description = line[len(ITEM_DESCRIPTION):]
             self._current_card.description = card_description
-            print("DESCRIPTION: ", line)
         elif line.startswith(SUB_ITEM):
             subtask_name = line[len(TODO):]
             subtask = SubTask(name=subtask_name)
-            print("SUB_ITEM: ", line)
             if line.startswith(TODO):
                 subtask.completed = False
-                print("TODO: ", line)
             elif line.startswith(COMPLETED):
                 subtask.completed = True
-                print("COMPLETED: ", line)
             self._current_card.append(subtask)
 
     def parse_file(self, path: str) -> Kanban:
