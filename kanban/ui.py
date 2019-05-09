@@ -1,6 +1,8 @@
-import urwid
-from kanban.board import Kanban
 from typing import Tuple
+
+import urwid
+
+from kanban.board import Kanban
 
 
 class SelectableText(urwid.Text):
