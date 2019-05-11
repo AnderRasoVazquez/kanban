@@ -1,3 +1,4 @@
+"""Contains UI widgets."""
 from typing import Tuple
 
 import urwid
@@ -6,6 +7,7 @@ from kanban.board import Kanban
 
 
 class SelectableText(urwid.Text):
+    """Represents a card's title."""
     def selectable(self):
         return True
 
@@ -14,13 +16,8 @@ class SelectableText(urwid.Text):
 
 
 class UICard(urwid.LineBox):
-    # class UICard(urwid.LineBox):
+    """Represents a card."""
     def __init__(self, text, desc: str = None, subtasks: Tuple[int, int] = None):
-        # TODO pila de valores
-        # tags
-        # nombre
-        # descripcion
-        # valores completados de la lista si los hay
         self.selectable_text = SelectableText(text)
         self.attr_map = urwid.AttrMap(self.selectable_text, '',  'reveal focus')
 
@@ -52,6 +49,7 @@ class UICard(urwid.LineBox):
 
 
 class MyColumns(urwid.Columns):
+    """Represents Kanban board columns."""
     def __init__(self, widget_list, *args, **kwargs):
         super().__init__(widget_list, *args, **kwargs)
 
@@ -66,6 +64,113 @@ class MyColumns(urwid.Columns):
             super().keypress(size, 'down')
         else:
             return key
+
+    def _get_current_column(self):
+        """Returns focused column."""
+        focused_list: urwid.ListBox = self.get_focus_widgets()
+        current_column = focused_list[0].body
+        return current_column
+
+    def is_empty(self):
+        """Return True if the board is empty."""
+        column_list = self.contents
+        return len(column_list) <= 0
+
+    def delete_current_column(self):
+        """Deletes focused column."""
+        if self.is_empty():
+            return
+        column_list = self.contents
+        if len(column_list) > 0:
+            col, row, *_ = self.get_focus_path()
+            del column_list[col]
+
+    def delete_current_card(self):
+        """Delete focused card."""
+        if self.is_empty():
+            return
+        col, row, *_ = self.get_focus_path()
+        current_column = self._get_current_column()
+        if row != 0:
+            current_column.pop(row)
+
+    def move_current_card_down(self):
+        """Move focused card down"""
+        if self.is_empty():
+            return
+        col, row, *_ = self.get_focus_path()
+        current_column = self._get_current_column()
+        if row < len(self[col].body) - 1:
+            a_card = current_column.pop(row)
+            current_column.insert(row + 1, a_card)
+            self.set_focus_path([col, row + 1])
+
+    def move_current_card_up(self):
+        """Move focused card up"""
+        if self.is_empty():
+            return
+        col, row, *_ = self.get_focus_path()
+        current_column = self._get_current_column()
+        if row > 1:
+            a_card = current_column.pop(row)
+            current_column.insert(row - 1, a_card)
+            self.set_focus_path([col, row - 1])
+
+    def move_current_card_to_next_column(self):
+        """Move focused to the next column"""
+        if self.is_empty():
+            return
+        col, row, *_ = self.get_focus_path()
+        current_column = self._get_current_column()
+        column_list = self.contents
+        if col < len(column_list) - 1:
+            a_card = current_column.pop(row)
+            self[col + 1].body.append(a_card)
+            self.set_focus_path([col + 1, len(self[col + 1].body) - 1])
+
+    def move_current_card_to_previous_column(self):
+        """Move focused to the previous column"""
+        if self.is_empty():
+            return
+        col, row, *_ = self.get_focus_path()
+        current_column = self._get_current_column()
+        if col != 0:
+            a_card = current_column[row]
+            self[col - 1].body.append(a_card)
+            del current_column[row]
+            self.set_focus_path([col - 1, len(self[col - 1].body) - 1])
+
+    def set_focus_to_first_column_item(self):
+        """Focus column's top card."""
+        if self.is_empty():
+            return
+        col, row, *_ = self.get_focus_path()
+        self.set_focus_path([col, 1])
+
+    def set_focus_to_last_column_item(self):
+        """Focus append card to """
+        if self.is_empty():
+            return
+        col, row, *_ = self.get_focus_path()
+        self.set_focus_path([col, len(self[col].body) - 1])
+
+    def append_to_current_column(self, card: UICard):
+        """Append a card to current column."""
+        if self.is_empty():
+            return
+        col, row, *_ = self.get_focus_path()
+        current_column = self._get_current_column()
+        current_column.insert(len(self[col].body), card)
+        self.set_focus_to_last_column_item()
+
+    def prepend_to_current_column(self, card: UICard):
+        """Append a card to current column."""
+        if self.is_empty():
+            return
+        col, row, *_ = self.get_focus_path()
+        current_column = self._get_current_column()
+        current_column.insert(1, card)
+        self.set_focus_to_first_column_item()
 
 
 # TODO this could be a frame?
@@ -93,7 +198,7 @@ class UIMain:
         self.frame = None
 
     def build_board(self, kanban: Kanban):
-        pass
+        """Display Kanban board."""
         column_list = []
         for count, col in enumerate(kanban.columns):
             list_content = []
@@ -112,7 +217,7 @@ class UIMain:
             listbox = urwid.ListBox(col_content)
             column_list.append(listbox)
             self.cols = MyColumns(column_list, dividechars=4, min_width=30)
-            filler = urwid.Filler(self.cols, 'top')
+
             padding = urwid.Padding(self.cols, left=2, right=2)
             header = urwid.AttrMap(urwid.Text('DAS: Android Final Project\n', align=urwid.CENTER), 'board_title')
             footer = urwid.AttrMap(
@@ -124,86 +229,39 @@ class UIMain:
                     ('footer_item', u"?"),
                 ]),
                 'footer')
+            # self.frame = urwid.Frame(body=padding, footer=footer)
             self.frame = urwid.Frame(body=padding, header=header, footer=footer)
 
     def unhandled_input(self, key):
-        # TODO controlarlo mejor en clases que lo hereden?
-        focused_list: urwid.ListBox = self.cols.get_focus_widgets()
-        current_card: UICard = self.cols.focus.focus # esto devuelve la carta
-        debug = focused_list[0]
-        col, row, *_ = self.cols.get_focus_path()  # devuelve el elemento, ej: [0, 2]
-        # si hay mas devuelve   ej: [0, 2, 1]
-        # puede ser interesante para coger la tarjeta y actualizarla con el nuevo valor
-        # si se guarda con el nuevo valor pasar esa tarjeta a la vista para que se actualice, o un json mejor
-        # TODO mirar si existe una forma de obtener el widget que quiero
-        item: urwid.LineBox = focused_list[1]  # line box
-        # item.set_text("Probando a meter texto")
-        # item.set_text("probando a meter texto en la carta")
-        # base = item.base_widget
-        # base.set_text("widget obtenido")
-        # TODO for debugging
-        # debug.body[1], debug.body[2] = debug.body[2], debug.body[1]
-        # debug.body.insert(1, UICard("insertado"))
-        # loop.draw_screen()
+        """Handle input that no other widget has handled."""
         if key == 'enter':
-            current_card.set_text("TESTING")
-            pass
-            # card_one.set_text(repr(debug.body[1].set_text("woow")))
-        elif key == "D":  # delete card
-            # del current_card
-            if row != 0:  # don't delete de title
-                del debug.body[row]
-                self.loop.draw_screen()
+            # TODO debug in footer
+            self.frame.footer.base_widget.set_text("Debug text")
+        elif key == "D":
+            self.cols.delete_current_card()
+        elif key == "A":
+            self.cols.append_to_current_column(UICard("Testing"))
+        elif key == "I":
+            self.cols.prepend_to_current_column(UICard("Testing"))
         elif key == "X":  # delete column
-            if len(self.cols.contents) > 0:
-                del self.cols.contents[col]
-                self.loop.draw_screen()
-        elif key in ["shift down", "J"]:  # delete column
-            if row < len(self.cols[col].body) - 1:
-                a_card = debug.body[row]  # get current card
-                del debug.body[row]
-                debug.body.insert(row + 1, a_card)
-                self.cols.set_focus_path([col, row + 1])
-        elif key in ["shift up", "K"]:  # delete column
-            if row > 1:  # the column title is pos 0
-                a_card = debug.body[row]  # get current card
-                del debug.body[row]
-                debug.body.insert(row - 1, a_card)
-                self.cols.set_focus_path([col, row - 1])
-        elif key in ["shift right", "L"]:  # delete column
-            if self.cols.focus_col < len(self.cols.contents) - 1:
-                a_card = debug.body[row]
-                self.cols[col + 1].body.append(a_card)
-                del debug.body[row]
-                # cols.focus_position = [1, 1]
-
-                self.cols.set_focus_path([col + 1, len(self.cols[col + 1].body) - 1])
-                # cols.set_focus_path([col + 1, len(cols[0].body)])
-
-                # listbox: urwid.ListBox = cols[col + 1]
-                # walker: urwid.ListWalker = listbox.body
-                # card = debug.body[row]
-                # cols.contents
-                # loop.draw_screen()
-        elif key in ["shift left", "H"]:  # delete column
-            if self.cols.focus_col != 0:
-                a_card = debug.body[row]
-                self.cols[col - 1].body.append(a_card)
-                del debug.body[row]
-
-                self.cols.set_focus_path([col - 1, len(self.cols[col - 1].body) - 1])
-                # card = debug.body[row]
-                # cols.contents
-                # loop.draw_screen()
+            self.cols.delete_current_column()
+        elif key in ["shift down", "J"]:
+            self.cols.move_current_card_down()
+        elif key in ["shift up", "K"]:
+            self.cols.move_current_card_up()
+        elif key in ["shift right", "L"]:
+            self.cols.move_current_card_to_next_column()
+        elif key in ["shift left", "H"]:
+            self.cols.move_current_card_to_previous_column()
         elif key in "G$":
-            self.cols.set_focus_path([col, len(self.cols[col].body) - 1])
+            self.cols.set_focus_to_last_column_item()
         elif key in "g0^":
-            self.cols.set_focus_path([col, 1])
-
+            self.cols.set_focus_to_first_column_item()
         elif key in 'qQ':
             raise urwid.ExitMainLoop()
 
     def run(self):
+        """Start UI."""
         self.loop = urwid.MainLoop(self.frame, palette=self.palette, unhandled_input=self.unhandled_input, handle_mouse=False)
         # TODO support more colors
         # loop.screen.set_terminal_properties(colors=256)
