@@ -21,6 +21,20 @@ class UICard(urwid.LineBox):
         self.selectable_text = SelectableText(text)
         self.attr_map = urwid.AttrMap(self.selectable_text, '',  'reveal focus')
 
+        pile = self._build_pile_items(desc, subtasks)
+        self.pile = urwid.Pile(pile)
+        super().__init__(self.pile,
+                         # title='', title_align='center', tlcorner='┌', tline='─', lline='│', trcorner='┐', blcorner='╘', rline='│', bline='═', brcorner='╛'
+                         # title='', title_align='center', tlcorner='╭', tline='─', lline='│', trcorner='╮', blcorner='╰', rline='│', bline='─', brcorner='╯'
+                         title='', title_align='center', tlcorner='', tline=' ', lline='', trcorner='', blcorner='', rline='', bline='', brcorner=''
+                         )
+
+    def set_text(self, text):
+        """Set card title text."""
+        self.selectable_text.set_text(text)
+
+    def _build_pile_items(self, desc, subtasks):
+        """Build card ui."""
         pile = []
         subtitle_text = ''
         if desc:
@@ -36,16 +50,7 @@ class UICard(urwid.LineBox):
             pile.append(
                 urwid.AttrMap(urwid.Text(subtitle_text), 'card_description')
             )
-
-        self.pile = urwid.Pile(pile)
-        super().__init__(self.pile,
-                         # title='', title_align='center', tlcorner='┌', tline='─', lline='│', trcorner='┐', blcorner='╘', rline='│', bline='═', brcorner='╛'
-                         # title='', title_align='center', tlcorner='╭', tline='─', lline='│', trcorner='╮', blcorner='╰', rline='│', bline='─', brcorner='╯'
-                         title='', title_align='center', tlcorner='', tline=' ', lline='', trcorner='', blcorner='', rline='', bline='', brcorner=''
-                         )
-
-    def set_text(self, text):
-        self.selectable_text.set_text(text)
+        return pile
 
 
 class MyColumns(urwid.Columns):
@@ -262,7 +267,11 @@ class UIMain:
 
     def run(self):
         """Start UI."""
-        self.loop = urwid.MainLoop(self.frame, palette=self.palette, unhandled_input=self.unhandled_input, handle_mouse=False)
+        self.loop = urwid.MainLoop(self.frame,
+                                   palette=self.palette,
+                                   unhandled_input=self.unhandled_input,
+                                   handle_mouse=False
+                                   )
         # TODO support more colors
         # loop.screen.set_terminal_properties(colors=256)
 
